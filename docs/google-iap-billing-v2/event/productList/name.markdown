@@ -2,13 +2,13 @@
 
 > --------------------- ------------------------------------------------------------------------------------------
 > __Type__              [String][api.type.String]
-> __Event__             [init][plugin.google-iap-billing.event.init]
+> __Event__             [productList][plugin.google-iap-billing-v2.event.productList]
 > __Revision__          [REVISION_LABEL](REVISION_URL)
-> __Keywords__          Google, IAP, in-app purchases, init, name
-> __See also__			[init][plugin.google-iap-billing.event.init]
->						[store.*][plugin.google-iap-billing]
+> __Keywords__          Google, IAP, in-app purchases, productList, name
+> __See also__			[productList][plugin.google-iap-billing-v2.event.productList]
+>						[store.*][plugin.google-iap-billing-v2]
 > --------------------- ------------------------------------------------------------------------------------------
 
 ## Overview
 
-The string `"init"`.
+The string `"productList"`.

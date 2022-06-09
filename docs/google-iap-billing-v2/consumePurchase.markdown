@@ -6,7 +6,7 @@
 > __Return value__      none
 > __Revision__          [REVISION_LABEL](REVISION_URL)
 > __Keywords__          Google, IAP, in-app purchases, consumePurchase
-> __See also__          [store.purchase()][plugin.google-iap-billing.purchase]
+> __See also__          [store.purchase()][plugin.google-iap-billing-v2.purchase]
 > --------------------- ------------------------------------------------------------------------------------------
 
 
@@ -37,4 +37,4 @@ This function has two alternative syntaxes
 _[String][api.type.String]._ String representing the product identifier of the item to consume.
 
 ##### transaction ~^(required)^~
-_[Table][api.type.Table]._ Table containing data related to the [transaction][plugin.google-iap-billing.event.storeTransaction.transaction] to be consumed.
+_[Table][api.type.Table]._ Table containing data related to the [transaction][plugin.google-iap-billing-v2.event.storeTransaction.transaction] to be consumed.

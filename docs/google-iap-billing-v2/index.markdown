@@ -1,5 +1,5 @@
 
-# google.iap.billing.*
+# google.iap.billing.v2.*
 
 > --------------------- ------------------------------------------------------------------------------------------
 > __Type__              [Library][api.type.Library]
@@ -10,12 +10,14 @@
 
 ## Overview
 
-The [Google IAP](https://marketplace.coronalabs.com/plugin/google-iap) plugin allows you to support <nobr>in-app</nobr> purchasing on Android, including <nobr>in-game</nobr> currency, upgrades, and more.
+The [Google IAP](https://plugins.solar2d.com/?search=plugin.google.iap.billing.v2) plugin allows you to support <nobr>in-app</nobr> purchasing on Android, including <nobr>in-game</nobr> currency, upgrades, and more.
 
-For in-app purchasing on other platforms, see the documentation for [Apple IAP][api.library.store] or [Amazon IAP][plugin.amazon-iap-v2].
+For in-app purchasing on other platforms, see the documentation for [Apple IAP][api.library.store] or [Amazon IAP][plugin.amazon-iap-v3].
 
 <div class="guide-notebox">
 <div class="notebox-title">Notes</div>
+
+* The only code change between Google API Billing v2 and [Billing v1][plugin.google-iap-billing] is removal [event.productList.products.originalJson][plugin.google-iap-billing-v2.event.productList.products] and new publisherId in `build.settings`
 
 * To use Google IAP, begin by setting up your [Google Payments Merchant Center](https://support.google.com/wallet/business/answer/1619772) account and linking it to the [Google Play Developer Console](https://play.google.com/apps/publish).
 
@@ -28,11 +30,11 @@ For in-app purchasing on other platforms, see the documentation for [Apple IAP][
 
 This plugin is a drop in replacement for [previous][plugin.google-iap-v3] IAP plugin. It would even respond to `require( "plugin.google.iap.v3" )` code. But there are couple differences:
 
-* [storeTransaction.transaction][plugin.google-iap-billing.event.storeTransaction.transaction] would not have data about purchase when error occurs.
+* [storeTransaction.transaction][plugin.google-iap-billing-v2.event.storeTransaction.transaction] would not have data about purchase when error occurs.
 
-* [storeTransaction.transaction][plugin.google-iap-billing.event.storeTransaction.transaction] event have additional values of `state` field.
+* [storeTransaction.transaction][plugin.google-iap-billing-v2.event.storeTransaction.transaction] event have additional values of `state` field.
 
-* [store.finishTransaction][plugin.google-iap-billing.event.storeTransaction.transaction] function is no longer no-op. It will acknowledge the purchase. If purchase is not acknowledged or consumed over three days it would be [refunded](https://developer.android.com/google/play/billing/integrate#process) to user.
+* [store.finishTransaction][plugin.google-iap-billing-v2.event.storeTransaction.transaction] function is no longer no-op. It will acknowledge the purchase. If purchase is not acknowledged or consumed over three days it would be [refunded](https://developer.android.com/google/play/billing/integrate#process) to user.
 
 </div>
 
@@ -52,40 +54,40 @@ When building an app using the Google&nbsp;IAP plugin, ensure that the following
 
 ## Syntax
 
-	local store = require( "plugin.google.iap.billing" )
+	local store = require( "plugin.google.iap.billing.v2" )
 
 
 ## Properties
 
-#### [store.target][plugin.google-iap-billing.target]
+#### [store.target][plugin.google-iap-billing-v2.target]
 
-#### [store.isActive][plugin.google-iap-billing.isActive]
+#### [store.isActive][plugin.google-iap-billing-v2.isActive]
 
-#### [store.canLoadProducts][plugin.google-iap-billing.canLoadProducts]
+#### [store.canLoadProducts][plugin.google-iap-billing-v2.canLoadProducts]
 
 
 ## Functions
 
-#### [store.init()][plugin.google-iap-billing.init]
+#### [store.init()][plugin.google-iap-billing-v2.init]
 
-#### [store.loadProducts()][plugin.google-iap-billing.loadProducts]
+#### [store.loadProducts()][plugin.google-iap-billing-v2.loadProducts]
 
-#### [store.purchase()][plugin.google-iap-billing.purchase]
+#### [store.purchase()][plugin.google-iap-billing-v2.purchase]
 
-#### [store.purchaseSubscription()][plugin.google-iap-billing.purchaseSubscription]
+#### [store.purchaseSubscription()][plugin.google-iap-billing-v2.purchaseSubscription]
 
-#### [store.restore()][plugin.google-iap-billing.restore]
+#### [store.restore()][plugin.google-iap-billing-v2.restore]
 
-#### [store.consumePurchase()][plugin.google-iap-billing.consumePurchase]
+#### [store.consumePurchase()][plugin.google-iap-billing-v2.consumePurchase]
 
 
 ## Events
 
-#### [init][plugin.google-iap-billing.event.init]
+#### [init][plugin.google-iap-billing-v2.event.init]
 
-#### [storeTransaction][plugin.google-iap-billing.event.storeTransaction]
+#### [storeTransaction][plugin.google-iap-billing-v2.event.storeTransaction]
 
-#### [productList][plugin.google-iap-billing.event.productList]
+#### [productList][plugin.google-iap-billing-v2.event.productList]
 
 
 ## Project Settings
@@ -97,9 +99,9 @@ settings =
 {
 	plugins =
 	{
-		["plugin.google.iap.billing"] =
+		["plugin.google.iap.billing.v2"] =
 		{
-			publisherId = "com.coronalabs"
+			publisherId = "com.solar2d"
 		},
 	},
 }
@@ -110,7 +112,7 @@ This will add mandatory `com.android.vending.BILLING` permission to your app.
 Finally, the `license` table may be added to the project `config.lua` file if you want your purchases to be verified. Inside this table, the `key` value should be set to the corresponding key obtained from the [Google Play Developer Console](https://play.google.com/apps/publish). In the Console, select your app, then click on "Monetization setup" section. Copy key from the "Licensing" section.
 
 ``````{ brush="lua" gutter="false" first-line="1" highlight="[3,4,5,6,7,8,9]" }
-application = 
+application =
 {
 	license =
 	{

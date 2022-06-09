@@ -6,20 +6,20 @@
 > __Return value__      none
 > __Revision__          [REVISION_LABEL](REVISION_URL)
 > __Keywords__          Google, IAP, in-app purchases, init
-> __See also__			[store.isActive][plugin.google-iap-billing.isActive]
->						[store.*][plugin.google-iap-billing]
+> __See also__			[store.isActive][plugin.google-iap-billing-v2.isActive]
+>						[store.*][plugin.google-iap-billing-v2]
 > --------------------- ------------------------------------------------------------------------------------------
 
 ## Overview
 
-This call is required and must be made before making other Google&nbsp;IAP calls. This prepares the Google&nbsp;IAP library and allows you to detect [storeTransaction][plugin.google-iap-billing.event.storeTransaction] events to the listener defined as `listener`.
+This call is required and must be made before making other Google&nbsp;IAP calls. This prepares the Google&nbsp;IAP library and allows you to detect [storeTransaction][plugin.google-iap-billing-v2.event.storeTransaction] events to the listener defined as `listener`.
 
 <div class="guide-notebox-imp">
 <div class="notebox-title-imp">Important</div>
 
-This method also dispatches an [init][plugin.google-iap-billing.event.init] event to the specified listener (the&nbsp;same listenter used for [storeTransaction][plugin.google-iap-billing.event.storeTransaction]&nbsp;events). At this point, [store.isActive][plugin.google-iap-billing.isActive] will be `true` unless an error occurred.
+This method also dispatches an [init][plugin.google-iap-billing-v2.event.init] event to the specified listener (the&nbsp;same listenter used for [storeTransaction][plugin.google-iap-billing-v2.event.storeTransaction]&nbsp;events). At this point, [store.isActive][plugin.google-iap-billing-v2.isActive] will be `true` unless an error occurred.
 
-To reiterate, you must wait until the [init][plugin.google-iap-billing.event.init] event is dispatched before attempting to [load products][plugin.google-iap-billing.loadProducts], [restore][plugin.google-iap-billing.restore] <nobr>previously-purchased</nobr> items, [consume][plugin.google-iap-billing.consumePurchase] an item, etc.
+To reiterate, you must wait until the [init][plugin.google-iap-billing-v2.event.init] event is dispatched before attempting to [load products][plugin.google-iap-billing-v2.loadProducts], [restore][plugin.google-iap-billing-v2.restore] <nobr>previously-purchased</nobr> items, [consume][plugin.google-iap-billing-v2.consumePurchase] an item, etc.
 
 Note that initialization is done ansynchronously because it may require network calls which take a variable amount of time depending on server load and network latencies.
 
@@ -31,7 +31,7 @@ Note that initialization is done ansynchronously because it may require network 
 	store.init( listener )
 
 ##### listener ~^(required)^~
-_[Listener][api.type.Listener]._ The listener that will handle [storeTransaction][plugin.google-iap-billing.event.storeTransaction] events. Note that this listener will also handle the [init][plugin.google-iap-billing.event.init] event as outlined above.
+_[Listener][api.type.Listener]._ The listener that will handle [storeTransaction][plugin.google-iap-billing-v2.event.storeTransaction] events. Note that this listener will also handle the [init][plugin.google-iap-billing-v2.event.init] event as outlined above.
 
 
 ## Example

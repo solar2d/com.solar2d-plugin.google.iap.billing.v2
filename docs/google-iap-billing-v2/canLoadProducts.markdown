@@ -5,14 +5,14 @@
 > __Type__              [Boolean][api.type.Boolean]
 > __Revision__          [REVISION_LABEL](REVISION_URL)
 > __Keywords__          Google, IAP, in-app purchases, canLoadProducts
-> __See also__          [store.loadProducts()][plugin.google-iap-billing.loadProducts]
->						[store.*][plugin.google-iap-billing]
+> __See also__          [store.loadProducts()][plugin.google-iap-billing-v2.loadProducts]
+>						[store.*][plugin.google-iap-billing-v2]
 > --------------------- ------------------------------------------------------------------------------------------
 
 
 ## Overview
 
-This property will be `true` if the store supports the loading of products. Following confirmation, the [store.loadProducts()][plugin.google-iap-billing.loadProducts] function can be used to retrieve information about items available for sale.
+This property will be `true` if the store supports the loading of products. Following confirmation, the [store.loadProducts()][plugin.google-iap-billing-v2.loadProducts] function can be used to retrieve information about items available for sale.
 
 
 ## Syntax
