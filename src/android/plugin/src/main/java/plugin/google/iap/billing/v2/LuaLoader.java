@@ -40,7 +40,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 
-import plugin.google.iap.billing.util.Security;
+import plugin.google.iap.billing.v2.util.Security;
 
 @SuppressWarnings({"unused", "RedundantSuppression"})
 public class LuaLoader implements JavaFunction, PurchasesUpdatedListener {
@@ -230,7 +230,7 @@ public class LuaLoader implements JavaFunction, PurchasesUpdatedListener {
                 L.rawGet(managedProductsTableIndex, i);
                 if (L.type(-1) == LuaType.STRING) {
                     managedProducts.add(L.toString(-1));
-                    QueryProductDetailsParams.Product myProduct = QueryProductDetailsParams.Product.newBuilder().setProductId(L.toString(-1)).setProductType(INAPP.toString()).build();
+                    QueryProductDetailsParams.Product myProduct = QueryProductDetailsParams.Product.newBuilder().setProductId(L.toString(-1)).setProductType(BillingClient.ProductType.INAPP).build();
                     inAppProductsList.add(myProduct);
                 }
                 L.pop(1);
@@ -247,7 +247,7 @@ public class LuaLoader implements JavaFunction, PurchasesUpdatedListener {
                 L.rawGet(listenerIndex, i);
                 if (L.type(-1) == LuaType.STRING) {
                     subscriptionProducts.add(L.toString(-1));
-                    QueryProductDetailsParams.Product myProduct = QueryProductDetailsParams.Product.newBuilder().setProductId(L.toString(-1)).setProductType(SUBS.toString()).build();
+                    QueryProductDetailsParams.Product myProduct = QueryProductDetailsParams.Product.newBuilder().setProductId(L.toString(-1)).setProductType(BillingClient.ProductType.SUBS).build();
                     SubProductsList.add(myProduct);
                 }
                 L.pop(1);

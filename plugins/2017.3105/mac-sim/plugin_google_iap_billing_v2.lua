@@ -1,7 +1,7 @@
 local Library = require "CoronaLibrary"
 
 -- Create library
-local lib = Library:new{ name='plugin.google.iap.billing', publisherId='com.coronalabs' }
+local lib = Library:new{ name='plugin.google.iap.billing.v2', publisherId='com.solar2d' }
 
 -------------------------------------------------------------------------------
 -- BEGIN (Insert your implementation starting here)
