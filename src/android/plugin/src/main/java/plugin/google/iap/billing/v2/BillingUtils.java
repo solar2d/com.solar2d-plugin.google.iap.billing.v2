@@ -52,14 +52,14 @@ public class BillingUtils {
     */
     public static String getOriginalJson(ProductDetails details) {
 
-        JSONObject oringalJson = new JSONObject();
+        JSONObject originalJson = new JSONObject();
         try {
             if(BillingClient.ProductType.SUBS.equals(details.getProductType()) || BillingClient.ProductType.INAPP.equals(details.getProductType())){
-                oringalJson.put("title", details.getTitle());
-                oringalJson.put("description", details.getDescription());
-                oringalJson.put("productId", details.getProductId());
-                oringalJson.put("type", details.getProductType());
-                oringalJson.put("packageName", CoronaEnvironment.getApplicationContext().getPackageName());
+                originalJson.put("title", details.getTitle());
+                originalJson.put("description", details.getDescription());
+                originalJson.put("productId", details.getProductId());
+                originalJson.put("type", details.getProductType());
+                originalJson.put("packageName", CoronaEnvironment.getApplicationContext().getPackageName());
             }
 
             if(BillingClient.ProductType.SUBS.equals(details.getProductType()))
@@ -69,44 +69,44 @@ public class BillingUtils {
 
                 int phaseIndex = 0;
                 ProductDetails.PricingPhase firstPricingPhase = pricingPlan.getPricingPhases().getPricingPhaseList().get(phaseIndex);
-                oringalJson.put("skuDetailsToken", pricingPlan.getOfferToken());
+                originalJson.put("skuDetailsToken", pricingPlan.getOfferToken());
 
 
                 String trialDays = null; // null for no days?
                 if(firstPricingPhase.getPriceAmountMicros() == 0) // free trial is always first
                 {
-                    oringalJson.put("trialDays", firstPricingPhase.getBillingPeriod());
+                    originalJson.put("trialDays", firstPricingPhase.getBillingPeriod());
                     phaseIndex++;
                     firstPricingPhase = pricingPlan.getPricingPhases().getPricingPhaseList().get(phaseIndex);
                 }
-                oringalJson.put("introductoryPricePeriod", firstPricingPhase.getBillingPeriod());
-                oringalJson.put("subscriptionPeriod", firstPricingPhase.getBillingPeriod()); //Same things?
-                oringalJson.put("introductoryPriceCycles", firstPricingPhase.getBillingCycleCount());
-                oringalJson.put("introductoryPriceAmountMicros", firstPricingPhase.getPriceAmountMicros());
-                oringalJson.put("introductoryPrice", firstPricingPhase.getFormattedPrice());
+                originalJson.put("introductoryPricePeriod", firstPricingPhase.getBillingPeriod());
+                originalJson.put("subscriptionPeriod", firstPricingPhase.getBillingPeriod()); //Same things?
+                originalJson.put("introductoryPriceCycles", firstPricingPhase.getBillingCycleCount());
+                originalJson.put("introductoryPriceAmountMicros", firstPricingPhase.getPriceAmountMicros());
+                originalJson.put("introductoryPrice", firstPricingPhase.getFormattedPrice());
 
-                oringalJson.put("localizedPrice", firstPricingPhase.getFormattedPrice());
-                oringalJson.put("price_amount_micros", firstPricingPhase.getPriceAmountMicros());
-                oringalJson.put("price_currency_code", firstPricingPhase.getPriceCurrencyCode());
+                originalJson.put("localizedPrice", firstPricingPhase.getFormattedPrice());
+                originalJson.put("price_amount_micros", firstPricingPhase.getPriceAmountMicros());
+                originalJson.put("price_currency_code", firstPricingPhase.getPriceCurrencyCode());
 
 
                 ProductDetails.PricingPhase secondPricingPhase = pricingPlan.getPricingPhases().getPricingPhaseList().get(phaseIndex+1);
                 if(secondPricingPhase != null){
                     //Second Price
-                    oringalJson.put("original_price", secondPricingPhase.getFormattedPrice());
-                    oringalJson.put("original_price_micros", secondPricingPhase.getPriceAmountMicros());
+                    originalJson.put("original_price", secondPricingPhase.getFormattedPrice());
+                    originalJson.put("original_price_micros", secondPricingPhase.getPriceAmountMicros());
 
                 }
 
             }else if(BillingClient.ProductType.INAPP.equals(details.getProductType())){
-                oringalJson.put("localizedPrice", details.getOneTimePurchaseOfferDetails().getFormattedPrice());
-                oringalJson.put("price_amount_micros", details.getOneTimePurchaseOfferDetails().getPriceAmountMicros());
-                oringalJson.put("price_currency_code", details.getOneTimePurchaseOfferDetails().getPriceCurrencyCode());
+                originalJson.put("localizedPrice", details.getOneTimePurchaseOfferDetails().getFormattedPrice());
+                originalJson.put("price_amount_micros", details.getOneTimePurchaseOfferDetails().getPriceAmountMicros());
+                originalJson.put("price_currency_code", details.getOneTimePurchaseOfferDetails().getPriceCurrencyCode());
             }
         } catch (JSONException e) {
             e.printStackTrace();
         }
-        return oringalJson.toString();
+        return originalJson.toString();
     }
 
     public static void PushDetailsToLua(ProductDetails details, LuaState L, int tableIndex) {
