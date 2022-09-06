@@ -129,6 +129,7 @@ public class LuaLoader implements JavaFunction, PurchasesUpdatedListener {
     public void onPurchasesUpdated(BillingResult billingResult, List<Purchase> list) {
         if (list != null) {
             for (Purchase purchase : list) {
+
                 if (Security.verifyPurchase(fLicenseKey, purchase.getOriginalJson(), purchase.getSignature())) {
                     fDispatcher.send(new StoreTransactionRuntimeTask(purchase, billingResult, fListener));
                 } else {
@@ -343,7 +344,7 @@ public class LuaLoader implements JavaFunction, PurchasesUpdatedListener {
         fBillingClient.queryPurchasesAsync(SUBS, new PurchasesResponseListener() {
             @Override
             public void onQueryPurchasesResponse(BillingResult billingResult, List<Purchase> list) {
-                numOfRestoreResults = numOfRestoreResults+1;
+
                 if (res.build().getResponseCode() == BillingResponseCode.OK) {
                     res.setResponseCode(billingResult.getResponseCode());
                     res.setDebugMessage(billingResult.getDebugMessage());
@@ -351,7 +352,12 @@ public class LuaLoader implements JavaFunction, PurchasesUpdatedListener {
                 if(list != null){
                     purchases.addAll(list);
                 }
-                fDispatcher.send(restoreCompletedTask);
+
+                if(numOfRestoreResults >= 1){
+                    onPurchasesUpdated(res.build(), res.build().getResponseCode() == BillingResponseCode.OK ? purchases : null);
+                    fDispatcher.send(restoreCompletedTask);
+                }
+                numOfRestoreResults = numOfRestoreResults+1;
             }
         });
 
@@ -366,11 +372,14 @@ public class LuaLoader implements JavaFunction, PurchasesUpdatedListener {
                 if(list != null){
                     purchases.addAll(list);
                 }
-                fDispatcher.send(restoreCompletedTask);
+                if(numOfRestoreResults >= 1){
+                    onPurchasesUpdated(res.build(), res.build().getResponseCode() == BillingResponseCode.OK ? purchases : null);
+                    fDispatcher.send(restoreCompletedTask);
+                }
+                numOfRestoreResults = numOfRestoreResults+1;
             }
         });
 
-        onPurchasesUpdated(res.build(), res.build().getResponseCode() == BillingResponseCode.OK ? purchases : null);
 
 
 
@@ -524,9 +533,7 @@ public class LuaLoader implements JavaFunction, PurchasesUpdatedListener {
     private int purchase(LuaState L) {
         return purchaseType(L, INAPP);
     }
-    private void consume(HashSet<Purchase>  purchases){
 
-    }
     private int consumePurchase(LuaState L) {
         if (!initSuccessful()) {
             Log.w("Corona", "Please call init before trying to consume products.");
