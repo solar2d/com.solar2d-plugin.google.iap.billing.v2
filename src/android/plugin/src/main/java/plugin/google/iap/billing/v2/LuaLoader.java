@@ -478,7 +478,12 @@ public class LuaLoader implements JavaFunction, PurchasesUpdatedListener {
         ProductDetails productDetails = fCachedProductDetails.get(productId);
         if (productDetails != null) {
             //Possibly add more products to purchase?
-            BillingFlowParams.ProductDetailsParams productDetailsParams = BillingFlowParams.ProductDetailsParams.newBuilder().setProductDetails(productDetails).setOfferToken(productDetails.getSubscriptionOfferDetails().get(0).getOfferToken()).build();
+            BillingFlowParams.ProductDetailsParams productDetailsParams =null;
+            if(BillingClient.ProductType.SUBS.equals(productDetails.getProductType())){
+                productDetailsParams = BillingFlowParams.ProductDetailsParams.newBuilder().setProductDetails(productDetails).setOfferToken(productDetails.getSubscriptionOfferDetails().get(0).getOfferToken()).build();
+            }else{
+                productDetailsParams = BillingFlowParams.ProductDetailsParams.newBuilder().setProductDetails(productDetails).build();
+            }
             List<BillingFlowParams.ProductDetailsParams> productDetailsParamsList = new ArrayList<>();
             productDetailsParamsList.add(productDetailsParams);
 
