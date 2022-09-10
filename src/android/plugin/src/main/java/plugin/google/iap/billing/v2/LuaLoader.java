@@ -614,6 +614,7 @@ public class LuaLoader implements JavaFunction, PurchasesUpdatedListener {
     }
 
     private void getPurchasesFromTransaction(LuaState L, final boolean IAPsOnly, final Runnable task) {
+
         final HashSet<String> productsIds = new HashSet<String>();
         final HashSet<String> tokens = new HashSet<String>();
         if (L.isTable(1)) {
@@ -697,7 +698,9 @@ public class LuaLoader implements JavaFunction, PurchasesUpdatedListener {
                 for (String productsId : productsIds) {
                     for (Purchase purchase : allPurchases) {
                         for (String purchasePID : purchase.getProducts()) {
-                            purchases.add(purchase);
+                            if(productsId.equals(purchasePID)){
+                                purchases.add(purchase);
+                            }
                         }
                     }
                 }
@@ -708,6 +711,7 @@ public class LuaLoader implements JavaFunction, PurchasesUpdatedListener {
                         }
                     }
                 }
+
                 cachePurchases = purchases;
                 task.run();
             }

@@ -89,9 +89,8 @@ public class BillingUtils {
                 originalJson.put("price_amount_micros", firstPricingPhase.getPriceAmountMicros());
                 originalJson.put("price_currency_code", firstPricingPhase.getPriceCurrencyCode());
 
-
-                ProductDetails.PricingPhase secondPricingPhase = pricingPlan.getPricingPhases().getPricingPhaseList().get(phaseIndex+1);
-                if(secondPricingPhase != null){
+                if(pricingPlan.getPricingPhases().getPricingPhaseList().size() >= phaseIndex+1){
+                    ProductDetails.PricingPhase secondPricingPhase = pricingPlan.getPricingPhases().getPricingPhaseList().get(phaseIndex+1);
                     //Second Price
                     originalJson.put("original_price", secondPricingPhase.getFormattedPrice());
                     originalJson.put("original_price_micros", secondPricingPhase.getPriceAmountMicros());
