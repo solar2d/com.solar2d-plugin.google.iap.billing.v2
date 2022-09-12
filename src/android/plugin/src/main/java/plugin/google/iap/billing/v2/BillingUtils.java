@@ -88,13 +88,13 @@ public class BillingUtils {
                 originalJson.put("localizedPrice", firstPricingPhase.getFormattedPrice());
                 originalJson.put("price_amount_micros", firstPricingPhase.getPriceAmountMicros());
                 originalJson.put("price_currency_code", firstPricingPhase.getPriceCurrencyCode());
-
-                if(pricingPlan.getPricingPhases().getPricingPhaseList().size() >= phaseIndex+1){
+                try {
                     ProductDetails.PricingPhase secondPricingPhase = pricingPlan.getPricingPhases().getPricingPhaseList().get(phaseIndex+1);
                     //Second Price
                     originalJson.put("original_price", secondPricingPhase.getFormattedPrice());
                     originalJson.put("original_price_micros", secondPricingPhase.getPriceAmountMicros());
-
+                } catch ( IndexOutOfBoundsException e ) {
+                    //Do nothing for now
                 }
 
             }else if(BillingClient.ProductType.INAPP.equals(details.getProductType())){
