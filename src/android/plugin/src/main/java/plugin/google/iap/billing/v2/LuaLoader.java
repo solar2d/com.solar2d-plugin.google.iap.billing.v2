@@ -606,7 +606,7 @@ public class LuaLoader implements JavaFunction, PurchasesUpdatedListener {
                 }
             }
         };
-        getPurchasesFromTransaction(L, true, processPurchases);
+        getPurchasesFromTransaction(L, false, processPurchases);
 
 
 
