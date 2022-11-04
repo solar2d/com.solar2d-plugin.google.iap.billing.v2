@@ -185,6 +185,7 @@ android {
     defaultConfig {
         applicationId = coronaAppPackage
         targetSdkVersion(29)
+        ndkVersion = "18.1.5063045"
         minSdkVersion(coronaMinSdkVersion)
         versionCode = coronaVersionCode
         versionName = coronaVersionName

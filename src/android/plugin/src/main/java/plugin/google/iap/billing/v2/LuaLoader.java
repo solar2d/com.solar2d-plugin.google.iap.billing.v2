@@ -183,6 +183,10 @@ public class LuaLoader implements JavaFunction, PurchasesUpdatedListener {
 
         CoronaActivity activity = CoronaEnvironment.getCoronaActivity();
         if (activity != null) {
+            //if billing client exist, end/cancel it ,or we will get a multiple callbacks
+            if(fBillingClient != null){
+                fBillingClient.endConnection();
+            }
             fBillingClient = BillingClient.newBuilder(activity).enablePendingPurchases().setListener(this).build();
             fBillingClient.startConnection(new BillingClientStateListener() {
                 int listener;

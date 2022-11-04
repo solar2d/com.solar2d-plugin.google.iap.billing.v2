@@ -4,7 +4,7 @@ local json = require "json"
 local store = require("plugin.google.iap.billing.v2")
 
 local products = {
-	"com.solar2d.permanent",
+	"android.test.purchased",
 	"com.solar2d.comsumable",
 	"nope-product",
 }
@@ -49,7 +49,7 @@ y=y+40
 
 local text = display.newText( "purchase consumable", display.contentCenterX, y, native.systemFont, 25 )
 text:addEventListener( "tap", function( )
-	store.purchase("com.solar2d.comsumable")
+	store.purchase("android.test.purchased")
 end )
 y=y+40
 
@@ -61,7 +61,7 @@ y=y+40
 
 local text = display.newText( "purchase permanent", display.contentCenterX, y, native.systemFont, 25 )
 text:addEventListener( "tap", function( )
-	store.purchase("com.solar2d.permanent")
+	store.purchase("android.test.purchased")
 end )
 y=y+40
 
