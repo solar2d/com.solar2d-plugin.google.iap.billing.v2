@@ -83,8 +83,10 @@ public class StoreTransactionRuntimeTask implements CoronaRuntimeTask {
                 L.pushString(LuaLoader.GetPurchaseType(fPurchase.getProducts().get(0)));//Should only be one item (for now)
                 L.setField(-2, "type");
 
-                L.pushString(fPurchase.getOrderId());
-                L.setField(-2, "identifier");
+                if(fPurchase.getOrderId() != null) {
+                    L.pushString(fPurchase.getOrderId());
+                    L.setField(-2, "identifier");
+                }
 
                 L.pushString(fPurchase.getPackageName());
                 L.setField(-2, "packageName");
