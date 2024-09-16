@@ -59,13 +59,15 @@ public class LuaLoader implements JavaFunction, PurchasesUpdatedListener {
     private final QueryPurchasesParams SUBS =  QueryPurchasesParams.newBuilder().setProductType(BillingClient.ProductType.SUBS).build();
     private int numOfRestoreResults = 0; //Used to make sure both restore events run
     private HashSet<Purchase> cachePurchases = null; //Used for Ansyc Events
+    //will keep the variable name as prorationMode for consistency with the argument name passed into the purchaseSubsciption function.
     private static final HashMap<String, Number> prorationMode = new HashMap<String, Number>(){{
-        put("unknownSubscriptionUpgrade", BillingFlowParams.ProrationMode.UNKNOWN_SUBSCRIPTION_UPGRADE_DOWNGRADE_POLICY);
-        put("deferred", BillingFlowParams.ProrationMode.DEFERRED);
-        put("immediateAndChargeFullPrice", BillingFlowParams.ProrationMode.IMMEDIATE_AND_CHARGE_FULL_PRICE);
-        put("immediateAndChargeProratedPrice", BillingFlowParams.ProrationMode.IMMEDIATE_AND_CHARGE_FULL_PRICE);
-        put("immediateWithoutProration", BillingFlowParams.ProrationMode.IMMEDIATE_WITHOUT_PRORATION);
-        put("immediateWithTimeProration", BillingFlowParams.ProrationMode.IMMEDIATE_WITH_TIME_PRORATION);
+
+        put("unknownSubscriptionUpgrade", BillingFlowParams.SubscriptionUpdateParams.ReplacementMode.UNKNOWN_REPLACEMENT_MODE);
+        put("deferred", BillingFlowParams.SubscriptionUpdateParams.ReplacementMode.DEFERRED);
+        put("immediateAndChargeFullPrice", BillingFlowParams.SubscriptionUpdateParams.ReplacementMode.CHARGE_FULL_PRICE);
+        put("immediateAndChargeProratedPrice", BillingFlowParams.SubscriptionUpdateParams.ReplacementMode.CHARGE_PRORATED_PRICE);
+        put("immediateWithoutProration", BillingFlowParams.SubscriptionUpdateParams.ReplacementMode.WITHOUT_PRORATION);
+        put("immediateWithTimeProration", BillingFlowParams.SubscriptionUpdateParams.ReplacementMode.WITH_TIME_PRORATION);
     }};
 
     static String GetPurchaseType(String productId) {
@@ -452,16 +454,18 @@ public class LuaLoader implements JavaFunction, PurchasesUpdatedListener {
                     subscriptionUpdateBuilder.setOldPurchaseToken(L.toString(-1));
                 }
                 L.pop(1);
+                //left key as "prorationMode" for backwards compatibility
                 L.getField(2, "prorationMode");
                 if(L.type(-1) == LuaType.STRING) {
                     if(prorationMode.containsKey(L.toString(-1))){
-                        subscriptionUpdateBuilder.setReplaceProrationMode((int) prorationMode.get(L.toString(-1)));
+                        subscriptionUpdateBuilder.setSubscriptionReplacementMode((int) prorationMode.get(L.toString(-1)));
                     }else{
                         Log.e("Corona", "Error Invalid prorationMode type: " +L.toString(-1));
                     }
                 }
                 L.pop(1);
-                purchaseParams.setIsOfferPersonalized(L.toBoolean(-1));
+
+                //The field productType is not documented in billing v2 docs. Is it ordinarily needed?
                 L.getField(2, "productType");
                 if(L.type(-1) == LuaType.STRING) {
                     if(L.toString(-1).equals("subs") || L.toString(-1).equals("inapp")){
@@ -471,7 +475,9 @@ public class LuaLoader implements JavaFunction, PurchasesUpdatedListener {
                     }
                 }
                 L.pop(1);
-                purchaseParams.setIsOfferPersonalized(L.toBoolean(-1));
+
+                purchaseParams.setSubscriptionUpdateParams(subscriptionUpdateBuilder.build());
+
             }
             L.pop(1);
 
