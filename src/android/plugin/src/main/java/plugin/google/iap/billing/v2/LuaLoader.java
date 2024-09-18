@@ -407,7 +407,11 @@ public class LuaLoader implements JavaFunction, PurchasesUpdatedListener {
         final int hashFlags = Base64.NO_PADDING | Base64.URL_SAFE | Base64.NO_CLOSE | Base64.NO_WRAP;
         String productIdType = "inapp";
         if (productId == null) return 0;
+
         final BillingFlowParams.Builder purchaseParams = BillingFlowParams.newBuilder();
+        final BillingFlowParams.SubscriptionUpdateParams.Builder subscriptionUpdateBuilder = BillingFlowParams.SubscriptionUpdateParams.newBuilder();
+        String previousSubscriptionPurchaseToken = null;
+
         if(L.isTable(2)) {
             L.getField(2, "accountId");
             if(L.type(-1) == LuaType.STRING) {
@@ -431,11 +435,13 @@ public class LuaLoader implements JavaFunction, PurchasesUpdatedListener {
                 }
             }
             L.pop(1);
+
             L.getField(2, "obfuscatedAccountId");
             if(L.type(-1) == LuaType.STRING) {
                 purchaseParams.setObfuscatedAccountId(L.toString(-1));
             }
             L.pop(1);
+
             L.getField(2, "obfuscatedProfileId");
             if(L.type(-1) == LuaType.STRING) {
                 purchaseParams.setObfuscatedProfileId(L.toString(-1));
@@ -448,10 +454,11 @@ public class LuaLoader implements JavaFunction, PurchasesUpdatedListener {
             L.pop(1);
             L.getField(2, "subscriptionUpdate");
             if(L.type(-1) == LuaType.TABLE) {
-                BillingFlowParams.SubscriptionUpdateParams.Builder subscriptionUpdateBuilder = BillingFlowParams.SubscriptionUpdateParams.newBuilder();
+
                 L.getField(2, "purchaseToken");
                 if(L.type(-1) == LuaType.STRING) {
-                    subscriptionUpdateBuilder.setOldPurchaseToken(L.toString(-1));
+                    previousSubscriptionPurchaseToken = L.toString(-1);
+                    subscriptionUpdateBuilder.setOldPurchaseToken(previousSubscriptionPurchaseToken);
                 }
                 L.pop(1);
                 //left key as "prorationMode" for backwards compatibility
@@ -475,15 +482,12 @@ public class LuaLoader implements JavaFunction, PurchasesUpdatedListener {
                     }
                 }
                 L.pop(1);
-
-                purchaseParams.setSubscriptionUpdateParams(subscriptionUpdateBuilder.build());
-
             }
             L.pop(1);
 
-
         }
 
+        final String f_previousSubscriptionPurchaseToken = previousSubscriptionPurchaseToken;
 
         ProductDetails productDetails = fCachedProductDetails.get(productId);
         if (productDetails != null) {
@@ -498,6 +502,9 @@ public class LuaLoader implements JavaFunction, PurchasesUpdatedListener {
             productDetailsParamsList.add(productDetailsParams);
 
             purchaseParams.setProductDetailsParamsList(productDetailsParamsList);
+            if (f_previousSubscriptionPurchaseToken != null) {
+                purchaseParams.setSubscriptionUpdateParams(subscriptionUpdateBuilder.build());
+            }
             CoronaActivity activity = CoronaEnvironment.getCoronaActivity();
             if (activity != null) {
                 fBillingClient.launchBillingFlow(activity, purchaseParams.build());
@@ -507,6 +514,8 @@ public class LuaLoader implements JavaFunction, PurchasesUpdatedListener {
             QueryProductDetailsParams.Product myProduct = QueryProductDetailsParams.Product.newBuilder().setProductId(productId).setProductType(productIdType).build();
             myProductList.add(myProduct);
             QueryProductDetailsParams detailsParams = QueryProductDetailsParams.newBuilder().setProductList(myProductList).build();
+
+
             fBillingClient.queryProductDetailsAsync(detailsParams,new ProductDetailsResponseListener() {
                 @Override
                 public void onProductDetailsResponse(final BillingResult billingResult, List<ProductDetails> list) {
@@ -519,6 +528,9 @@ public class LuaLoader implements JavaFunction, PurchasesUpdatedListener {
                                 List<BillingFlowParams.ProductDetailsParams> productDetailsParamsList = new ArrayList<>();
                                 productDetailsParamsList.add(productDetailsParams);
                                 purchaseParams.setProductDetailsParamsList(productDetailsParamsList);
+                                if (f_previousSubscriptionPurchaseToken != null) {
+                                    purchaseParams.setSubscriptionUpdateParams(subscriptionUpdateBuilder.build());
+                                }
                                 CoronaActivity activity = CoronaEnvironment.getCoronaActivity();
                                 if (activity != null) {
                                     fBillingClient.launchBillingFlow(activity, purchaseParams.build());
