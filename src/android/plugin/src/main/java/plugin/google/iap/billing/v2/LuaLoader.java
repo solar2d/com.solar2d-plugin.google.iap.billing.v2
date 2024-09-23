@@ -452,17 +452,20 @@ public class LuaLoader implements JavaFunction, PurchasesUpdatedListener {
                 purchaseParams.setIsOfferPersonalized(L.toBoolean(-1));
             }
             L.pop(1);
+
+
             L.getField(2, "subscriptionUpdate");
             if(L.type(-1) == LuaType.TABLE) {
 
-                L.getField(2, "purchaseToken");
+                L.getField(-1, "purchaseToken");
                 if(L.type(-1) == LuaType.STRING) {
                     previousSubscriptionPurchaseToken = L.toString(-1);
                     subscriptionUpdateBuilder.setOldPurchaseToken(previousSubscriptionPurchaseToken);
                 }
                 L.pop(1);
+
                 //left key as "prorationMode" for backwards compatibility
-                L.getField(2, "prorationMode");
+                L.getField(-1, "prorationMode");
                 if(L.type(-1) == LuaType.STRING) {
                     if(prorationMode.containsKey(L.toString(-1))){
                         subscriptionUpdateBuilder.setSubscriptionReplacementMode((int) prorationMode.get(L.toString(-1)));
@@ -473,7 +476,7 @@ public class LuaLoader implements JavaFunction, PurchasesUpdatedListener {
                 L.pop(1);
 
                 //The field productType is not documented in billing v2 docs. Is it ordinarily needed?
-                L.getField(2, "productType");
+                L.getField(-1, "productType");
                 if(L.type(-1) == LuaType.STRING) {
                     if(L.toString(-1).equals("subs") || L.toString(-1).equals("inapp")){
                         productIdType = L.toString(-1);
