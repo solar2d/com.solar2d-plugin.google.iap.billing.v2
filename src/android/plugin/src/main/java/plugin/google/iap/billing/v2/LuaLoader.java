@@ -12,16 +12,15 @@ import com.android.billingclient.api.BillingFlowParams;
 import com.android.billingclient.api.BillingResult;
 import com.android.billingclient.api.ConsumeParams;
 import com.android.billingclient.api.ConsumeResponseListener;
+import com.android.billingclient.api.PendingPurchasesParams;
 import com.android.billingclient.api.ProductDetails;
 import com.android.billingclient.api.ProductDetailsResponseListener;
+import com.android.billingclient.api.QueryProductDetailsResult;
 import com.android.billingclient.api.Purchase;
 import com.android.billingclient.api.PurchasesResponseListener;
 import com.android.billingclient.api.PurchasesUpdatedListener;
 import com.android.billingclient.api.QueryProductDetailsParams;
 import com.android.billingclient.api.QueryPurchasesParams;
-import com.android.billingclient.api.SkuDetails;
-import com.android.billingclient.api.SkuDetailsParams;
-import com.android.billingclient.api.SkuDetailsResponseListener;
 import com.ansca.corona.CoronaActivity;
 import com.ansca.corona.CoronaEnvironment;
 import com.ansca.corona.CoronaLua;
@@ -58,10 +57,10 @@ public class LuaLoader implements JavaFunction, PurchasesUpdatedListener {
     private final QueryPurchasesParams INAPP = QueryPurchasesParams.newBuilder().setProductType(BillingClient.ProductType.INAPP).build();
     private final QueryPurchasesParams SUBS =  QueryPurchasesParams.newBuilder().setProductType(BillingClient.ProductType.SUBS).build();
     private int numOfRestoreResults = 0; //Used to make sure both restore events run
-    private HashSet<Purchase> cachePurchases = null; //Used for Ansyc Events
-    //will keep the variable name as prorationMode for consistency with the argument name passed into the purchaseSubsciption function.
-    private static final HashMap<String, Number> prorationMode = new HashMap<String, Number>(){{
+    private HashSet<Purchase> cachePurchases = null; //Used for Async Events
 
+    // Updated replacement modes for PBL 8
+    private static final HashMap<String, Number> prorationMode = new HashMap<String, Number>(){{
         put("unknownSubscriptionUpgrade", BillingFlowParams.SubscriptionUpdateParams.ReplacementMode.UNKNOWN_REPLACEMENT_MODE);
         put("deferred", BillingFlowParams.SubscriptionUpdateParams.ReplacementMode.DEFERRED);
         put("immediateAndChargeFullPrice", BillingFlowParams.SubscriptionUpdateParams.ReplacementMode.CHARGE_FULL_PRICE);
@@ -126,12 +125,10 @@ public class LuaLoader implements JavaFunction, PurchasesUpdatedListener {
         return 1;
     }
 
-
     @Override
     public void onPurchasesUpdated(BillingResult billingResult, List<Purchase> list) {
         if (list != null) {
             for (Purchase purchase : list) {
-
                 if (Security.verifyPurchase(fLicenseKey, purchase.getOriginalJson(), purchase.getSignature())) {
                     fDispatcher.send(new StoreTransactionRuntimeTask(purchase, billingResult, fListener));
                 } else {
@@ -185,11 +182,22 @@ public class LuaLoader implements JavaFunction, PurchasesUpdatedListener {
 
         CoronaActivity activity = CoronaEnvironment.getCoronaActivity();
         if (activity != null) {
-            //if billing client exist, end/cancel it ,or we will get a multiple callbacks
+            //if billing client exist, end/cancel it, or we will get multiple callbacks
             if(fBillingClient != null){
                 fBillingClient.endConnection();
             }
-            fBillingClient = BillingClient.newBuilder(activity).enablePendingPurchases().setListener(this).build();
+
+            // Updated for PBL 8: Use PendingPurchasesParams
+            PendingPurchasesParams pendingPurchasesParams = PendingPurchasesParams.newBuilder()
+                    .enableOneTimeProducts()
+                    .enablePrepaidPlans()
+                    .build();
+
+            fBillingClient = BillingClient.newBuilder(activity)
+                    .enablePendingPurchases(pendingPurchasesParams)
+                    .setListener(this)
+                    .build();
+
             fBillingClient.startConnection(new BillingClientStateListener() {
                 int listener;
 
@@ -200,7 +208,7 @@ public class LuaLoader implements JavaFunction, PurchasesUpdatedListener {
                 @Override
                 public void onBillingSetupFinished(BillingResult billingResult) {
                     if (listener != CoronaLua.REFNIL) {
-                        InitRuntimeTask task = new InitRuntimeTask(billingResult, listener, fLibRef);// ProductListRuntimeTask(inv, managedProducts, finalSubscriptionProducts, result, listener);
+                        InitRuntimeTask task = new InitRuntimeTask(billingResult, listener, fLibRef);
                         fDispatcher.send(task);
                     }
                     listener = CoronaLua.REFNIL;
@@ -209,7 +217,9 @@ public class LuaLoader implements JavaFunction, PurchasesUpdatedListener {
 
                 @Override
                 public void onBillingServiceDisconnected() {
-                    // ...
+                    // The PBL 8 can automatically reconnect when API calls are made
+                    // No action needed here for automatic reconnection
+                    fSetupSuccessful = false;
                 }
             });
         } else {
@@ -218,7 +228,6 @@ public class LuaLoader implements JavaFunction, PurchasesUpdatedListener {
 
         return 0;
     }
-
 
     private int loadProducts(LuaState L) {
         if (!initSuccessful()) {
@@ -237,7 +246,10 @@ public class LuaLoader implements JavaFunction, PurchasesUpdatedListener {
                 L.rawGet(managedProductsTableIndex, i);
                 if (L.type(-1) == LuaType.STRING) {
                     managedProducts.add(L.toString(-1));
-                    QueryProductDetailsParams.Product myProduct = QueryProductDetailsParams.Product.newBuilder().setProductId(L.toString(-1)).setProductType(BillingClient.ProductType.INAPP).build();
+                    QueryProductDetailsParams.Product myProduct = QueryProductDetailsParams.Product.newBuilder()
+                            .setProductId(L.toString(-1))
+                            .setProductType(BillingClient.ProductType.INAPP)
+                            .build();
                     inAppProductsList.add(myProduct);
                 }
                 L.pop(1);
@@ -254,7 +266,10 @@ public class LuaLoader implements JavaFunction, PurchasesUpdatedListener {
                 L.rawGet(listenerIndex, i);
                 if (L.type(-1) == LuaType.STRING) {
                     subscriptionProducts.add(L.toString(-1));
-                    QueryProductDetailsParams.Product myProduct = QueryProductDetailsParams.Product.newBuilder().setProductId(L.toString(-1)).setProductType(BillingClient.ProductType.SUBS).build();
+                    QueryProductDetailsParams.Product myProduct = QueryProductDetailsParams.Product.newBuilder()
+                            .setProductId(L.toString(-1))
+                            .setProductType(BillingClient.ProductType.SUBS)
+                            .build();
                     SubProductsList.add(myProduct);
                 }
                 L.pop(1);
@@ -269,11 +284,12 @@ public class LuaLoader implements JavaFunction, PurchasesUpdatedListener {
         final BillingUtils.SynchronizedWaiter waiter = new BillingUtils.SynchronizedWaiter();
         final ProductDetailsResponseListener responder = new ProductDetailsResponseListener() {
             @Override
-            public void onProductDetailsResponse(BillingResult billingResult, List<ProductDetails> list) {
+            public void onProductDetailsResponse(BillingResult billingResult, QueryProductDetailsResult queryProductDetailsResult) {
                 if (billingResult.getResponseCode() != BillingResponseCode.OK && result.build().getResponseCode() == BillingResponseCode.OK) {
                     result.setResponseCode(billingResult.getResponseCode());
                     result.setDebugMessage(billingResult.getDebugMessage());
                 }
+                List<ProductDetails> list = queryProductDetailsResult.getProductDetailsList();
                 if (list != null) {
                     allDetails.addAll(list);
                     for (ProductDetails details : list) {
@@ -284,19 +300,21 @@ public class LuaLoader implements JavaFunction, PurchasesUpdatedListener {
             }
         };
 
-
         int tasks = 0;
         if(!inAppProductsList.isEmpty()){
             tasks++;
-            QueryProductDetailsParams detailsParams = QueryProductDetailsParams.newBuilder().setProductList(inAppProductsList).build();
-            fBillingClient.queryProductDetailsAsync(detailsParams,responder);
+            QueryProductDetailsParams detailsParams = QueryProductDetailsParams.newBuilder()
+                    .setProductList(inAppProductsList)
+                    .build();
+            fBillingClient.queryProductDetailsAsync(detailsParams, responder);
         }
         if(!SubProductsList.isEmpty()){
             tasks++;
-            QueryProductDetailsParams detailsParams = QueryProductDetailsParams.newBuilder().setProductList(SubProductsList).build();
-            fBillingClient.queryProductDetailsAsync(detailsParams,responder);
+            QueryProductDetailsParams detailsParams = QueryProductDetailsParams.newBuilder()
+                    .setProductList(SubProductsList)
+                    .build();
+            fBillingClient.queryProductDetailsAsync(detailsParams, responder);
         }
-
 
         waiter.Set(tasks, new Runnable() {
             @Override
@@ -308,7 +326,6 @@ public class LuaLoader implements JavaFunction, PurchasesUpdatedListener {
         return 0;
     }
 
-
     private int restore(LuaState L) {
         if (!initSuccessful()) {
             Log.w("Corona", "Please call init before trying to restore products.");
@@ -317,11 +334,9 @@ public class LuaLoader implements JavaFunction, PurchasesUpdatedListener {
         numOfRestoreResults = 0;
 
         final BillingResult.Builder res = BillingResult.newBuilder().setResponseCode(BillingResponseCode.OK);
-
         final ArrayList<Purchase> purchases = new ArrayList<Purchase>();
 
-
-        final CoronaRuntimeTask restoreCompletedTask =new CoronaRuntimeTask() {
+        final CoronaRuntimeTask restoreCompletedTask = new CoronaRuntimeTask() {
             @Override
             public void executeUsing(CoronaRuntime coronaRuntime) {
                 if (fListener == CoronaLua.REFNIL || numOfRestoreResults < 2) {
@@ -350,7 +365,6 @@ public class LuaLoader implements JavaFunction, PurchasesUpdatedListener {
         fBillingClient.queryPurchasesAsync(SUBS, new PurchasesResponseListener() {
             @Override
             public void onQueryPurchasesResponse(BillingResult billingResult, List<Purchase> list) {
-
                 if (res.build().getResponseCode() == BillingResponseCode.OK) {
                     res.setResponseCode(billingResult.getResponseCode());
                     res.setDebugMessage(billingResult.getDebugMessage());
@@ -363,14 +377,14 @@ public class LuaLoader implements JavaFunction, PurchasesUpdatedListener {
                     onPurchasesUpdated(res.build(), res.build().getResponseCode() == BillingResponseCode.OK ? purchases : null);
                     fDispatcher.send(restoreCompletedTask);
                 }
-                numOfRestoreResults = numOfRestoreResults+1;
+                numOfRestoreResults = numOfRestoreResults + 1;
             }
         });
 
         fBillingClient.queryPurchasesAsync(INAPP, new PurchasesResponseListener() {
             @Override
             public void onQueryPurchasesResponse(BillingResult billingResult, List<Purchase> list) {
-                numOfRestoreResults = numOfRestoreResults+1;
+                numOfRestoreResults = numOfRestoreResults + 1;
                 if (res.build().getResponseCode() == BillingResponseCode.OK) {
                     res.setResponseCode(billingResult.getResponseCode());
                     res.setDebugMessage(billingResult.getDebugMessage());
@@ -382,17 +396,14 @@ public class LuaLoader implements JavaFunction, PurchasesUpdatedListener {
                     onPurchasesUpdated(res.build(), res.build().getResponseCode() == BillingResponseCode.OK ? purchases : null);
                     fDispatcher.send(restoreCompletedTask);
                 }
-                numOfRestoreResults = numOfRestoreResults+1;
+                numOfRestoreResults = numOfRestoreResults + 1;
             }
         });
-
-
-
 
         return 0;
     }
 
-    private int purchaseType( LuaState L, final QueryPurchasesParams type) {
+    private int purchaseType(LuaState L, final QueryPurchasesParams type) {
         if (!initSuccessful()) {
             Log.w("Corona", "Please call init before trying to purchase products.");
             return 0;
@@ -424,6 +435,7 @@ public class LuaLoader implements JavaFunction, PurchasesUpdatedListener {
                 }
             }
             L.pop(1);
+
             L.getField(2, "profileId");
             if(L.type(-1) == LuaType.STRING) {
                 try {
@@ -431,7 +443,7 @@ public class LuaLoader implements JavaFunction, PurchasesUpdatedListener {
                     String hashed = Base64.encodeToString(MessageDigest.getInstance("SHA-256").digest(s.getBytes()), hashFlags);
                     purchaseParams.setObfuscatedProfileId(hashed);
                 } catch (Throwable err) {
-                    Log.e("Corona", "Error while hashing accountId: " + err.toString());
+                    Log.e("Corona", "Error while hashing profileId: " + err.toString());
                 }
             }
             L.pop(1);
@@ -447,16 +459,15 @@ public class LuaLoader implements JavaFunction, PurchasesUpdatedListener {
                 purchaseParams.setObfuscatedProfileId(L.toString(-1));
             }
             L.pop(1);
+
             L.getField(2, "offerPersonalized");
             if(L.type(-1) == LuaType.BOOLEAN) {
                 purchaseParams.setIsOfferPersonalized(L.toBoolean(-1));
             }
             L.pop(1);
 
-
             L.getField(2, "subscriptionUpdate");
             if(L.type(-1) == LuaType.TABLE) {
-
                 L.getField(-1, "purchaseToken");
                 if(L.type(-1) == LuaType.STRING) {
                     previousSubscriptionPurchaseToken = L.toString(-1);
@@ -464,43 +475,52 @@ public class LuaLoader implements JavaFunction, PurchasesUpdatedListener {
                 }
                 L.pop(1);
 
-                //left key as "prorationMode" for backwards compatibility
+                // Updated for PBL 8: Use correct method name
                 L.getField(-1, "prorationMode");
                 if(L.type(-1) == LuaType.STRING) {
                     if(prorationMode.containsKey(L.toString(-1))){
                         subscriptionUpdateBuilder.setSubscriptionReplacementMode((int) prorationMode.get(L.toString(-1)));
-                    }else{
-                        Log.e("Corona", "Error Invalid prorationMode type: " +L.toString(-1));
+                    } else {
+                        Log.e("Corona", "Error Invalid prorationMode type: " + L.toString(-1));
                     }
                 }
                 L.pop(1);
 
-                //The field productType is not documented in billing v2 docs. Is it ordinarily needed?
                 L.getField(-1, "productType");
                 if(L.type(-1) == LuaType.STRING) {
                     if(L.toString(-1).equals("subs") || L.toString(-1).equals("inapp")){
                         productIdType = L.toString(-1);
-                    }else{
-                        Log.e("Corona", "Error Invalid productIdType type: " +L.toString(-1));
+                    } else {
+                        Log.e("Corona", "Error Invalid productIdType type: " + L.toString(-1));
                     }
                 }
                 L.pop(1);
             }
             L.pop(1);
-
         }
 
         final String f_previousSubscriptionPurchaseToken = previousSubscriptionPurchaseToken;
 
         ProductDetails productDetails = fCachedProductDetails.get(productId);
         if (productDetails != null) {
-            //Possibly add more products to purchase?
-            BillingFlowParams.ProductDetailsParams productDetailsParams =null;
+            BillingFlowParams.ProductDetailsParams productDetailsParams = null;
             if(BillingClient.ProductType.SUBS.equals(productDetails.getProductType())){
-                productDetailsParams = BillingFlowParams.ProductDetailsParams.newBuilder().setProductDetails(productDetails).setOfferToken(productDetails.getSubscriptionOfferDetails().get(0).getOfferToken()).build();
-            }else{
-                productDetailsParams = BillingFlowParams.ProductDetailsParams.newBuilder().setProductDetails(productDetails).build();
+                // For subscriptions, we need to get the offer token
+                if (productDetails.getSubscriptionOfferDetails() != null && !productDetails.getSubscriptionOfferDetails().isEmpty()) {
+                    productDetailsParams = BillingFlowParams.ProductDetailsParams.newBuilder()
+                            .setProductDetails(productDetails)
+                            .setOfferToken(productDetails.getSubscriptionOfferDetails().get(0).getOfferToken())
+                            .build();
+                } else {
+                    Log.e("Corona", "No subscription offer details found for product: " + productId);
+                    return 0;
+                }
+            } else {
+                productDetailsParams = BillingFlowParams.ProductDetailsParams.newBuilder()
+                        .setProductDetails(productDetails)
+                        .build();
             }
+
             List<BillingFlowParams.ProductDetailsParams> productDetailsParamsList = new ArrayList<>();
             productDetailsParamsList.add(productDetailsParams);
 
@@ -508,32 +528,58 @@ public class LuaLoader implements JavaFunction, PurchasesUpdatedListener {
             if (f_previousSubscriptionPurchaseToken != null) {
                 purchaseParams.setSubscriptionUpdateParams(subscriptionUpdateBuilder.build());
             }
+
             CoronaActivity activity = CoronaEnvironment.getCoronaActivity();
             if (activity != null) {
                 fBillingClient.launchBillingFlow(activity, purchaseParams.build());
             }
         } else {
+            // Product details not cached, need to query first
             List<QueryProductDetailsParams.Product> myProductList = new ArrayList<>();
-            QueryProductDetailsParams.Product myProduct = QueryProductDetailsParams.Product.newBuilder().setProductId(productId).setProductType(productIdType).build();
+            QueryProductDetailsParams.Product myProduct = QueryProductDetailsParams.Product.newBuilder()
+                    .setProductId(productId)
+                    .setProductType(productIdType)
+                    .build();
             myProductList.add(myProduct);
-            QueryProductDetailsParams detailsParams = QueryProductDetailsParams.newBuilder().setProductList(myProductList).build();
+            QueryProductDetailsParams detailsParams = QueryProductDetailsParams.newBuilder()
+                    .setProductList(myProductList)
+                    .build();
 
-
-            fBillingClient.queryProductDetailsAsync(detailsParams,new ProductDetailsResponseListener() {
+            fBillingClient.queryProductDetailsAsync(detailsParams, new ProductDetailsResponseListener() {
                 @Override
-                public void onProductDetailsResponse(final BillingResult billingResult, List<ProductDetails> list) {
+                public void onProductDetailsResponse(final BillingResult billingResult, QueryProductDetailsResult queryProductDetailsResult) {
                     boolean sent = false;
                     if (billingResult.getResponseCode() == BillingResponseCode.OK) {
+                        List<ProductDetails> list = queryProductDetailsResult.getProductDetailsList();
                         for (ProductDetails details : list) {
                             fCachedProductDetails.put(details.getProductId(), details);
                             if (details.getProductId().equals(productId)) {
-                                BillingFlowParams.ProductDetailsParams productDetailsParams = BillingFlowParams.ProductDetailsParams.newBuilder().setProductDetails(details).build();
+                                BillingFlowParams.ProductDetailsParams productDetailsParams = null;
+
+                                if(BillingClient.ProductType.SUBS.equals(details.getProductType())){
+                                    if (details.getSubscriptionOfferDetails() != null && !details.getSubscriptionOfferDetails().isEmpty()) {
+                                        productDetailsParams = BillingFlowParams.ProductDetailsParams.newBuilder()
+                                                .setProductDetails(details)
+                                                .setOfferToken(details.getSubscriptionOfferDetails().get(0).getOfferToken())
+                                                .build();
+                                    } else {
+                                        Log.e("Corona", "No subscription offer details found for product: " + productId);
+                                        return;
+                                    }
+                                } else {
+                                    productDetailsParams = BillingFlowParams.ProductDetailsParams.newBuilder()
+                                            .setProductDetails(details)
+                                            .build();
+                                }
+
                                 List<BillingFlowParams.ProductDetailsParams> productDetailsParamsList = new ArrayList<>();
                                 productDetailsParamsList.add(productDetailsParams);
                                 purchaseParams.setProductDetailsParamsList(productDetailsParamsList);
+
                                 if (f_previousSubscriptionPurchaseToken != null) {
                                     purchaseParams.setSubscriptionUpdateParams(subscriptionUpdateBuilder.build());
                                 }
+
                                 CoronaActivity activity = CoronaEnvironment.getCoronaActivity();
                                 if (activity != null) {
                                     fBillingClient.launchBillingFlow(activity, purchaseParams.build());
@@ -546,11 +592,10 @@ public class LuaLoader implements JavaFunction, PurchasesUpdatedListener {
                             Log.e("Corona", "Error while purchasing because Product Id was not found");
                         }
                     } else {
-                        Log.e("Corona", "Error while purchasing" + billingResult.getDebugMessage());
+                        Log.e("Corona", "Error while purchasing: " + billingResult.getDebugMessage());
                     }
                 }
             });
-
         }
 
         return 0;
@@ -576,7 +621,9 @@ public class LuaLoader implements JavaFunction, PurchasesUpdatedListener {
                 for (final Purchase purchase : cachePurchases) {
                     if (!fConsumedPurchases.contains(purchase.getPurchaseToken())) {
                         fConsumedPurchases.add(purchase.getPurchaseToken());
-                        ConsumeParams params = ConsumeParams.newBuilder().setPurchaseToken(purchase.getPurchaseToken()).build();
+                        ConsumeParams params = ConsumeParams.newBuilder()
+                                .setPurchaseToken(purchase.getPurchaseToken())
+                                .build();
                         fBillingClient.consumeAsync(params, new ConsumeResponseListener() {
                             @Override
                             public void onConsumeResponse(BillingResult billingResult, String ignore) {
@@ -612,7 +659,9 @@ public class LuaLoader implements JavaFunction, PurchasesUpdatedListener {
                     if (!fAcknowledgedPurchases.contains(purchase.getPurchaseToken())) {
                         if (!purchase.isAcknowledged() && purchase.getPurchaseState() == Purchase.PurchaseState.PURCHASED) {
                             fAcknowledgedPurchases.add(purchase.getPurchaseToken());
-                            AcknowledgePurchaseParams params = AcknowledgePurchaseParams.newBuilder().setPurchaseToken(purchase.getPurchaseToken()).build();
+                            AcknowledgePurchaseParams params = AcknowledgePurchaseParams.newBuilder()
+                                    .setPurchaseToken(purchase.getPurchaseToken())
+                                    .build();
                             fBillingClient.acknowledgePurchase(params, new AcknowledgePurchaseResponseListener() {
                                 @Override
                                 public void onAcknowledgePurchaseResponse(BillingResult billingResult) {
@@ -626,22 +675,20 @@ public class LuaLoader implements JavaFunction, PurchasesUpdatedListener {
                             });
                         }
                     } else {
-                        Log.i("Corona", "Purchase already being finished (acknowledged)" + purchase.getOrderId() + ". It is safe to ignore this message");
+                        Log.i("Corona", "Purchase already being finished (acknowledged): " + purchase.getOrderId() + ". It is safe to ignore this message");
                     }
                 }
             }
         };
         getPurchasesFromTransaction(L, false, processPurchases);
 
-
-
         return 0;
     }
 
     private void getPurchasesFromTransaction(LuaState L, final boolean IAPsOnly, final Runnable task) {
-
         final HashSet<String> productsIds = new HashSet<String>();
         final HashSet<String> tokens = new HashSet<String>();
+
         if (L.isTable(1)) {
             int tableLength = L.length(1);
             for (int i = 1; i <= tableLength; i++) {
@@ -684,6 +731,7 @@ public class LuaLoader implements JavaFunction, PurchasesUpdatedListener {
                 productsIds.add(L.toString(1));
             }
         }
+
         final List<Purchase> allPurchases = new ArrayList<Purchase>();
         final BillingUtils.SynchronizedWaiter waiter = new BillingUtils.SynchronizedWaiter();
         int tasks = 0;
@@ -699,8 +747,8 @@ public class LuaLoader implements JavaFunction, PurchasesUpdatedListener {
                     waiter.Hit();
                 }
             });
-
         }
+
         tasks++;
         fBillingClient.queryPurchasesAsync(INAPP, new PurchasesResponseListener() {
             @Override
@@ -711,10 +759,6 @@ public class LuaLoader implements JavaFunction, PurchasesUpdatedListener {
                 waiter.Hit();
             }
         });
-
-
-
-
 
         waiter.Set(tasks, new Runnable() {
             @Override
@@ -741,11 +785,9 @@ public class LuaLoader implements JavaFunction, PurchasesUpdatedListener {
                 task.run();
             }
         });
-
-
-
     }
 
+    // Wrapper classes remain the same
     private class InitWrapper implements NamedJavaFunction {
         @Override
         public String getName() {
@@ -829,5 +871,4 @@ public class LuaLoader implements JavaFunction, PurchasesUpdatedListener {
             return restore(L);
         }
     }
-
 }
