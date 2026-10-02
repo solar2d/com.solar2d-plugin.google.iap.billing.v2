@@ -365,6 +365,7 @@ public class LuaLoader implements JavaFunction, PurchasesUpdatedListener {
         fBillingClient.queryPurchasesAsync(SUBS, new PurchasesResponseListener() {
             @Override
             public void onQueryPurchasesResponse(BillingResult billingResult, List<Purchase> list) {
+                numOfRestoreResults = numOfRestoreResults + 1;
                 if (res.build().getResponseCode() == BillingResponseCode.OK) {
                     res.setResponseCode(billingResult.getResponseCode());
                     res.setDebugMessage(billingResult.getDebugMessage());
@@ -373,11 +374,10 @@ public class LuaLoader implements JavaFunction, PurchasesUpdatedListener {
                     purchases.addAll(list);
                 }
 
-                if(numOfRestoreResults >= 1){
+                if(numOfRestoreResults == 2){
                     onPurchasesUpdated(res.build(), res.build().getResponseCode() == BillingResponseCode.OK ? purchases : null);
                     fDispatcher.send(restoreCompletedTask);
                 }
-                numOfRestoreResults = numOfRestoreResults + 1;
             }
         });
 
@@ -392,11 +392,10 @@ public class LuaLoader implements JavaFunction, PurchasesUpdatedListener {
                 if(list != null){
                     purchases.addAll(list);
                 }
-                if(numOfRestoreResults >= 1){
+                if(numOfRestoreResults == 2){
                     onPurchasesUpdated(res.build(), res.build().getResponseCode() == BillingResponseCode.OK ? purchases : null);
                     fDispatcher.send(restoreCompletedTask);
                 }
-                numOfRestoreResults = numOfRestoreResults + 1;
             }
         });
 
