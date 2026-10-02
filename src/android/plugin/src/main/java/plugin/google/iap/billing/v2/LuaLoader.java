@@ -46,6 +46,7 @@ public class LuaLoader implements JavaFunction, PurchasesUpdatedListener {
     private int fLibRef;
     private int fListener;
     private CoronaRuntimeTaskDispatcher fDispatcher;
+    // Tracks successful initialization, not the current service connection.
     private boolean fSetupSuccessful;
     private String fLicenseKey;
     private BillingClient fBillingClient;
@@ -142,6 +143,7 @@ public class LuaLoader implements JavaFunction, PurchasesUpdatedListener {
     }
 
     private int init(LuaState L) {
+        fSetupSuccessful = false;
         int listenerIndex = 1;
 
         L.getGlobal("require");
@@ -195,6 +197,7 @@ public class LuaLoader implements JavaFunction, PurchasesUpdatedListener {
 
             fBillingClient = BillingClient.newBuilder(activity)
                     .enablePendingPurchases(pendingPurchasesParams)
+                    .enableAutoServiceReconnection()
                     .setListener(this)
                     .build();
 
@@ -207,19 +210,20 @@ public class LuaLoader implements JavaFunction, PurchasesUpdatedListener {
 
                 @Override
                 public void onBillingSetupFinished(BillingResult billingResult) {
+                    if (billingResult.getResponseCode() == BillingResponseCode.OK) {
+                        fSetupSuccessful = true;
+                    }
                     if (listener != CoronaLua.REFNIL) {
                         InitRuntimeTask task = new InitRuntimeTask(billingResult, listener, fLibRef);
                         fDispatcher.send(task);
                     }
                     listener = CoronaLua.REFNIL;
-                    fSetupSuccessful = billingResult.getResponseCode() == BillingResponseCode.OK;
                 }
 
                 @Override
                 public void onBillingServiceDisconnected() {
-                    // The PBL 8 can automatically reconnect when API calls are made
-                    // No action needed here for automatic reconnection
-                    fSetupSuccessful = false;
+                    // Keep initialized clients usable so the next API call can trigger
+                    // BillingClient's automatic reconnection and report its result.
                 }
             });
         } else {
